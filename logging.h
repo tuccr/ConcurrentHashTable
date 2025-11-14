@@ -8,10 +8,17 @@ pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER; // mutex for safe logging
 
 const char fname[] = "hash.log";
 
-enum cmd_param {
+enum state {
     WAIT, AWAKENED, READ_LOCK_ACQUIRE, READ_LOCK_RELEASE, WRITE_LOCK_ACQUIRE, WRITE_LOCK_RELEASE
 };
 
+enum cmd {
+    INSERT, DELETE, UPDATE, SEARCH, PRINT
+};
+
+/*
+Gets current timestamp in microseconds.
+*/
 long long current_timestamp() {  
     struct timeval te;  
     gettimeofday(&te, NULL); // get current time  
@@ -19,6 +26,9 @@ long long current_timestamp() {
     return microseconds;
 }
 
+/*
+Write line to log file atomically.
+*/
 void write_log(const char* line) {
     pthread_mutex_lock(&log_mutex); // lock mutex for safe logging
 
@@ -35,15 +45,41 @@ void write_log(const char* line) {
     pthread_mutex_unlock(&log_mutex); // unlock mutex after logging
 }
 
-void log_event(const char* command, int priority) {
-
+/*
+Generate string for logging command with priority. Takes parameters as a string built by calling function.
+*/
+void log_event(int command, const char* params, int priority) {
     long long timestamp = current_timestamp();
     char buffer[128];
-    snprintf(buffer, sizeof(buffer), "%lld: THREAD %d %s\n", timestamp, priority, command);
+    char command_str[16];
+    switch(command) {
+        case INSERT:
+            strcpy(command_str, "INSERT");
+            break;
+        case DELETE:
+            strcpy(command_str, "DELETE");
+            break;
+        case UPDATE:
+            strcpy(command_str, "UPDATE");
+            break;
+        case SEARCH:
+            strcpy(command_str, "SEARCH");
+            break;
+        case PRINT:
+            strcpy(command_str, "PRINT");
+            break;
+        default:
+            strcpy(command_str, "UNKNOWN");
+            break;
+    }
+    snprintf(buffer, sizeof(buffer), "%lld: THREAD %d %s,%s\n", timestamp, priority, command_str, params);
 
     write_log(buffer);
 }
 
+/*
+Generate string for logging thread task/state change with priority.
+*/
 void log_event(int param, int priority) {
     long long timestamp = current_timestamp();
     char buffer[128];
