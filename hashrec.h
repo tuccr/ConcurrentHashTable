@@ -22,6 +22,7 @@ void freeHashRecord(hashRecord* rec) {
     free(rec);
 }
 
+
 /*
 Allocate memory for new hashRecord and return pointer to it. Calls jenkins_one_at_a_time_hash.
 */
