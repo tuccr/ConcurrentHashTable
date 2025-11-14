@@ -19,12 +19,7 @@ long long current_timestamp() {
     return microseconds;
 }
 
-void log_event(const char* command, int priority) {
-
-    long long timestamp = current_timestamp();
-    char buffer[128];
-    snprintf(buffer, sizeof(buffer), "%lld: THREAD %d %s\n", timestamp, priority, command);
-
+void write_log(const char* line) {
     pthread_mutex_lock(&log_mutex); // lock mutex for safe logging
 
     FILE *logfile = fopen(fname, "a");
@@ -33,11 +28,20 @@ void log_event(const char* command, int priority) {
         return; // Could not open log file
     }
     else {
-        fprintf(logfile, "%s", buffer);
+        fprintf(logfile, "%s", line);
     }
     fclose(logfile);
 
     pthread_mutex_unlock(&log_mutex); // unlock mutex after logging
+}
+
+void log_event(const char* command, int priority) {
+
+    long long timestamp = current_timestamp();
+    char buffer[128];
+    snprintf(buffer, sizeof(buffer), "%lld: THREAD %d %s\n", timestamp, priority, command);
+
+    write_log(buffer);
 }
 
 void log_event(int param, int priority) {
@@ -67,15 +71,5 @@ void log_event(int param, int priority) {
             break;
     }
 
-    pthread_mutex_lock(&log_mutex); // lock mutex for safe logging
-
-    FILE *logfile = fopen(fname, "a");
-    if (logfile == NULL) {
-        printf("Error opening log file\n");
-        return; // Could not open log file
-    }
-    fprintf(logfile, "THREAD %d %s", priority, buffer);
-    fclose(logfile);
-
-    pthread_mutex_unlock(&log_mutex); // unlock mutex after logging
+    write_log(buffer);
 }
