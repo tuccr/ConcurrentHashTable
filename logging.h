@@ -86,22 +86,22 @@ void log_event(int param, int priority) {
 
     switch(param) {
         case WAIT:
-            snprintf(buffer, "%lld: THREAD %d WAITING FOR MY TURN\n", timestamp, priority);
+            snprintf(buffer, sizeof(buffer), "%lld: THREAD %d WAITING FOR MY TURN\n", timestamp, priority);
             break;
         case AWAKENED:
-            snprintf(buffer, "%lld: THREAD %d AWAKENED FOR WORK\n", timestamp, priority);
+            snprintf(buffer, sizeof(buffer), "%lld: THREAD %d AWAKENED FOR WORK\n", timestamp, priority);
             break;
         case READ_LOCK_ACQUIRE:
-            snprintf(buffer, "%lld: THREAD %d READ LOCK ACQUIRED\n", timestamp, priority);
+            snprintf(buffer, sizeof(buffer), "%lld: THREAD %d READ LOCK ACQUIRED\n", timestamp, priority);
             break;
         case READ_LOCK_RELEASE:
-            snprintf(buffer, "%lld: THREAD %d READ LOCK RELEASED\n", timestamp, priority);
+            snprintf(buffer, sizeof(buffer), "%lld: THREAD %d READ LOCK RELEASED\n", timestamp, priority);
             break;
         case WRITE_LOCK_ACQUIRE:
-            snprintf(buffer, "%lld: THREAD %d WRITE LOCK ACQUIRED\n", timestamp, priority);
+            snprintf(buffer, sizeof(buffer), "%lld: THREAD %d WRITE LOCK ACQUIRED\n", timestamp, priority);
             break;
         case WRITE_LOCK_RELEASE:
-            snprintf(buffer, "%lld: THREAD %d WRITE LOCK RELEASED\n", timestamp, priority);
+            snprintf(buffer, sizeof(buffer), "%lld: THREAD %d WRITE LOCK RELEASED\n", timestamp, priority);
             break;
         default:
             break;
