@@ -149,6 +149,12 @@ command_t* buildCmdLL(char* fileName)
     command_t *result = NULL;
     FILE *file = fopen(fileName, "r");
 
+    if(file == NULL)
+    {
+        printf("Error opening file: \"%s\"\n", fileName);
+        return NULL;
+    }
+
     // initial Node
     if (fgets(getLine, LINELEN, file) == NULL)
     {
