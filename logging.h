@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include "sys/time.h"
 #include <pthread.h>
+#include "command.h"
+#include "jenkins.h"
 
 pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER; // mutex for safe logging (no logging events in the middle of each other)
 
@@ -29,7 +31,9 @@ long long current_timestamp() {
 /*
 Write line to log file atomically (avoids interleaved log entries).
 */
-void write_log(const char* line) {
+void *write_log(void* arg) {
+    char* line = (char*)arg;
+
     pthread_mutex_lock(&log_mutex); // lock mutex for safe logging
 
     FILE *logfile = fopen(fname, "a");
@@ -43,36 +47,40 @@ void write_log(const char* line) {
     fclose(logfile);
 
     pthread_mutex_unlock(&log_mutex); // unlock mutex after logging
+
+    return NULL;
 }
 
 /*
 Generate string for logging command with priority. Takes parameters as a string built by calling function.
 */
-void log_event(int command, const char* params, int priority) {
+void log_event(command_t* cmd) {
     long long timestamp = current_timestamp();
     char buffer[128];
     char command_str[16];
-    switch(command) {
+
+    uint32_t hash = jenkins_one_at_a_time_hash((uint8_t *)(cmd->name), strlen(cmd->name));
+
+    switch(cmd->cmd) {
         case INSERT:
-            strcpy(command_str, "INSERT");
+            snprintf(buffer, sizeof(buffer), "%lld: THREAD %d INSERT,%d,%s,%d\n", timestamp, cmd->priority, hash, cmd->name, cmd->salary);
             break;
         case DELETE:
-            strcpy(command_str, "DELETE");
+            snprintf(buffer, sizeof(buffer), "%lld: THREAD %d DELETE,%d,%s\n", timestamp, cmd->priority, hash, cmd->name);
             break;
         case UPDATE:
-            strcpy(command_str, "UPDATE");
+            snprintf(buffer, sizeof(buffer), "%lld: THREAD %d UPDATE,%d,%s,%d\n", timestamp, cmd->priority, hash, cmd->name, cmd->salary);
             break;
         case SEARCH:
-            strcpy(command_str, "SEARCH");
+            snprintf(buffer, sizeof(buffer), "%lld: THREAD %d SEARCH,%d,%s\n", timestamp, cmd->priority, hash, cmd->name);
             break;
         case PRINT:
-            strcpy(command_str, "PRINT");
+            snprintf(buffer, sizeof(buffer), "%lld: THREAD %d PRINT\n", timestamp, cmd->priority);
             break;
         default:
-            strcpy(command_str, "UNKNOWN");
+            snprintf(buffer, sizeof(buffer), "%lld: THREAD %d INVALID COMMAND\n", timestamp, cmd->priority);
             break;
     }
-    snprintf(buffer, sizeof(buffer), "%lld: THREAD %d %s,%s\n", timestamp, priority, command_str, params);
 
     write_log(buffer);
 }
@@ -108,4 +116,8 @@ void log_event(int param, int priority) {
     }
 
     write_log(buffer);
+}
+
+void print_event(command_t* cmd) {
+    
 }
