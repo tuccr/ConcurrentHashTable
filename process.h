@@ -3,6 +3,9 @@
 #include "logging.h"
 #include <pthread.h>
 
+/*
+Accepts command_t struct pointer and inserts into hashtable.
+*/
 void* insert(void* arg) {
     command_t* cmd = (command_t*)arg;
 
@@ -29,6 +32,10 @@ void* insert(void* arg) {
     return NULL;
 }
 
+
+/*
+Accepts command_t struct pointer and searches hashtable for entry. Returns pointer to hashRecord if found, NULL otherwise.
+*/
 void* search(void* arg) {
     command_t* cmd = (command_t*)arg;
 
@@ -54,6 +61,10 @@ void* search(void* arg) {
     return NULL;
 }
 
+
+/*
+Accepts command_t struct pointer and updates salary in hashtable entry if found.
+*/
 void* update(void* arg) {
     command_t* cmd = (command_t*)arg;
 
@@ -76,6 +87,10 @@ void* update(void* arg) {
     return NULL;
 }
 
+
+/*
+Accepts command_t struct pointer and deletes entry from hashtable if found.
+*/
 void* delete(void* arg) {
     command_t* cmd = (command_t*)arg;
 
@@ -83,25 +98,25 @@ void* delete(void* arg) {
     uint32_t idx = realHash(hash, TABLE_SIZE);
 
     // can't just use search for this one since we need to modify previous pointers
+
+    /*
+    Begin critical section
+    */
     hashRecord* current = htp->records[idx];
     hashRecord* prev = NULL;
     while(current != NULL) {
         if(current->hash == hash && strcmp(current->name, cmd->name) == 0) {
-            /*
-            Begin critical section
-            */
-
             prev->next = current->next;
             freeHashRecord(current);
-
-            /*
-            End Critical Section
-            */
             return NULL;
         }
         prev = current;
         current = current->next;
     }
+
+    /*
+    End critical section
+    */
 
     return NULL;
 }
