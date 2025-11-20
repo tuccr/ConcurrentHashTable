@@ -14,7 +14,14 @@ void* insert(void* arg) {
     begin critical section
     */
 
-    htp->records[idx] = newRec;
+    if(htp->records[idx] != NULL) {
+        hashRecord * current = htp->records[idx];
+        while(current->next != NULL) {
+            current = current->next;
+        }
+        current->next = newRec;
+    }
+    else htp->records[idx] = newRec;
 
     /*
     End critical section
@@ -75,7 +82,7 @@ void* delete(void* arg) {
     uint32_t hash = jenkins_one_at_a_time_hash((uint8_t *)(cmd->name), strlen(cmd->name));
     uint32_t idx = realHash(hash, TABLE_SIZE);
 
-    // made this section different because given hashrecord struct doesn't contain a prev pointer
+    // can't just use search for this one since we need to modify previous pointers
     hashRecord* current = htp->records[idx];
     hashRecord* prev = NULL;
     while(current != NULL) {
