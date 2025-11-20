@@ -13,7 +13,7 @@ enum state {
 };
 
 enum cmd {
-    INSERT, DELETE, UPDATE, SEARCH, PRINT
+    INVALID=0, INSERT, DELETE, UPDATE, SEARCH, PRINT
 };
 
 /*
@@ -27,7 +27,7 @@ long long current_timestamp() {
 }
 
 /*
-Write line to log file atomically.
+Write line to log file atomically (avoids interleaved log entries).
 */
 void write_log(const char* line) {
     pthread_mutex_lock(&log_mutex); // lock mutex for safe logging
