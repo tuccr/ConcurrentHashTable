@@ -7,29 +7,31 @@
 Accepts command_t struct pointer and inserts into hashtable.
 */
 void* insert(void* arg) {
+    // cv.wait()
+
+    // cv.signal()
+
     command_t* cmd = (command_t*)arg;
 
-    hashRecord * newRec = newHashRecord((uint8_t *)(cmd->name), (uint32_t)(cmd->salary));
+    hashRecord * record = newHashRecord((uint8_t *)(cmd->name), (uint32_t)(cmd->salary));
 
-    uint32_t idx = realHash(newRec->hash, TABLE_SIZE);
+    // write_lock()
 
-    /*
-    begin critical section
-    */
-
-    if(htp->records[idx] != NULL) {
-        hashRecord * current = htp->records[idx];
-        while(current->next != NULL) {
-            current = current->next;
-        }
-        current->next = newRec;
+    if(htp->head == NULL) {
+        htp->head = record;
     }
-    else htp->records[idx] = newRec;
 
-    /*
-    End critical section
-    */
+    hashRecord* current = htp->head;
+    while(current->next != NULL) {
+        current = current->next;
+    }
+    current->next = record;
+    htp->size += 1;
+
+    // write_unlock()
+
     return NULL;
+
 }
 
 
@@ -37,27 +39,25 @@ void* insert(void* arg) {
 Accepts command_t struct pointer and searches hashtable for entry. Returns pointer to hashRecord if found, NULL otherwise.
 */
 void* search(void* arg) {
+    // cv.wait()
+
+    // cv.signal()
     command_t* cmd = (command_t*)arg;
 
     uint32_t hash = jenkins_one_at_a_time_hash((uint8_t *)(cmd->name), strlen(cmd->name));
     uint32_t idx = realHash(hash, TABLE_SIZE);
 
-    
-    hashRecord* current = htp->records[idx];
-
-    /*
-    critical section start
-    */
-
+    // read_lock()
+    hashRecord* current = htp->head;
     while(current != NULL) {
         if(current->hash == hash && strcmp(current->name, cmd->name) == 0) {
-            // if we find it, we need to end critical section here
-            return current;
+            // read_unlock()
+            return (void*)current;
         }
         current = current->next;
     }
+    // read_unlock()
 
-    // also end critical section here if we don't find anything
     return NULL;
 }
 
@@ -66,23 +66,23 @@ void* search(void* arg) {
 Accepts command_t struct pointer and updates salary in hashtable entry if found.
 */
 void* update(void* arg) {
+    // cv.wait()
+
+    // cv.signal()
     command_t* cmd = (command_t*)arg;
 
     uint32_t hash = jenkins_one_at_a_time_hash((uint8_t *)(cmd->name), strlen(cmd->name));
-    uint32_t idx = realHash(hash, TABLE_SIZE);
 
-    /*
-    Start critical section
-    */
-
+    // read_lock()
     hashRecord* toChange = (hashRecord*)search(arg);
+    // read_unlock()
+
+    // write_lock()
     if(toChange != NULL) {
         toChange->salary = (uint32_t)(cmd->salary);
     }
 
-    /*
-    End critical section
-    */
+    // write_unlock()
 
     return NULL;
 }
@@ -92,31 +92,50 @@ void* update(void* arg) {
 Accepts command_t struct pointer and deletes entry from hashtable if found.
 */
 void* delete(void* arg) {
+    // cv.wait()
+
+    // cv.signal()
+
     command_t* cmd = (command_t*)arg;
 
     uint32_t hash = jenkins_one_at_a_time_hash((uint8_t *)(cmd->name), strlen(cmd->name));
-    uint32_t idx = realHash(hash, TABLE_SIZE);
 
     // can't just use search for this one since we need to modify previous pointers
 
-    /*
-    Begin critical section
-    */
-    hashRecord* current = htp->records[idx];
-    hashRecord* prev = NULL;
+    // read_lock()
+    hashRecord* current = htp->head;
+    hashRecord* prev = htp->head;
     while(current != NULL) {
         if(current->hash == hash && strcmp(current->name, cmd->name) == 0) {
+            // read_unlock()
+            // write_lock()
             prev->next = current->next;
             freeHashRecord(current);
+            htp->size -= 1;
+            // write_unlock()
             return NULL;
         }
         prev = current;
         current = current->next;
     }
 
-    /*
-    End critical section
-    */
+    // read_unlock()
+
+    return NULL;
+}
+
+void* print(void* args) {
+    // cv.wait()
+
+    // cv.signal()
+
+    // read_lock()
+    printf("Current Database:\n");
+    hashRecord* current = htp->head;
+    while(current != NULL) {
+        printf("%d,%s,%d\n", current->hash, current->name, current->salary);
+    }
+    // read_unlock()
 
     return NULL;
 }

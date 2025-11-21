@@ -8,6 +8,10 @@
 typedef struct thread_control_block {
     pthread_t thread_id;
     int priority;
+<<<<<<< HEAD
+=======
+    pthread_cond_t *cond;
+>>>>>>> b44d11a7f02697d4c6c1ee63d32a5ee3eb38290a
 } tcb_t;
 
 typedef struct wait_queue {
