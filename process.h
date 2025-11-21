@@ -30,6 +30,11 @@ void* insert(void* arg) {
 
     if(htp->head == NULL) {
         htp->head = record;
+        htp->size += 1;
+
+        pthread_mutex_unlock(&write_mutex);
+        log_event(WRITE_LOCK_RELEASE, cmd->priority);
+        return NULL;
     }
 
     hashRecord* current = htp->head;
@@ -48,7 +53,6 @@ void* insert(void* arg) {
     current->next = record;
     htp->size += 1;
 
-    // write_unlock()
     pthread_mutex_unlock(&write_mutex);
     log_event(WRITE_LOCK_RELEASE, cmd->priority);
 
@@ -61,34 +65,11 @@ void* insert(void* arg) {
 Accepts command_t struct pointer and searches hashtable for entry. Returns pointer to hashRecord if found, NULL otherwise.
 */
 void* search(void* arg) {
-    // cv.wait()
-
-    // cv.signal()
     command_t* cmd = (command_t*)arg;
 
+    log_event(WAIT, cmd->priority);
+    
     uint32_t hash = jenkins_one_at_a_time_hash((uint8_t *)(cmd->name), strlen(cmd->name));
-    uint32_t idx = realHash(hash, TABLE_SIZE);
-
-    // read_lock()
-    hashRecord* current = htp->head;
-    while(current != NULL) {
-        if(current->hash == hash && strcmp(current->name, cmd->name) == 0) {
-            // read_unlock()
-            return (void*)current;
-        }
-        current = current->next;
-    }
-    // read_unlock()
-
-    return NULL;
-}
-
-
-/*
-Accepts command_t struct pointer and updates salary in hashtable entry if found.
-*/
-void* update(void* arg) {
-    command_t* cmd = (command_t*)arg;
 
     pthread_mutex_lock(&read_mutex);
     while(get_highest_priority(&wait_queue) != cmd->priority) {
@@ -99,20 +80,55 @@ void* update(void* arg) {
     log_event(READ_LOCK_ACQUIRE, cmd->priority);
     pthread_cond_signal(&cv);
 
-    uint32_t hash = jenkins_one_at_a_time_hash((uint8_t *)(cmd->name), strlen(cmd->name));
-    // read_lock()
-    log_event(READ_LOCK_ACQUIRE, cmd->priority);
-    hashRecord* toChange = (hashRecord*)search(arg);
-    // read_unlock()
-    log_event(READ_LOCK_RELEASE, cmd->priority);
-
-    // write_lock()
-    log_event(WRITE_LOCK_ACQUIRE, cmd->priority);
-    if(toChange != NULL) {
-        toChange->salary = (uint32_t)(cmd->salary);
+    hashRecord* current = htp->head;
+    while(current != NULL) {
+        if(current->hash == hash && strcmp(current->name, cmd->name) == 0) {
+            return (void*)current;
+        }
+        current = current->next;
     }
 
-    // write_unlock()
+    pthread_mutex_unlock(&read_mutex);
+    log_event(READ_LOCK_RELEASE, cmd->priority);
+    pthread_cond_signal(&cv);
+
+    return NULL;
+}
+
+
+/*
+Accepts command_t struct pointer and updates salary in hashtable entry if found.
+*/
+void* updateSalary(void* arg) {
+    command_t* cmd = (command_t*)arg;
+
+    uint32_t hash = jenkins_one_at_a_time_hash((uint8_t *)(cmd->name), strlen(cmd->name));
+
+    pthread_mutex_lock(&write_mutex);
+    while(get_highest_priority(&wait_queue) != cmd->priority) {
+        pthread_cond_wait(&cv, &write_mutex);
+    }
+    log_event(AWAKENED, cmd->priority);
+    log_cmd(cmd);
+    log_event(WRITE_LOCK_ACQUIRE, cmd->priority);
+    pthread_cond_signal(&cv);
+
+    hashRecord* current = htp->head;
+    while(current != NULL) {
+        if(current->hash == hash && strcmp(current->name, cmd->name) == 0) {
+            break;
+        }
+        current = current->next;
+    }
+
+    if(current != NULL) {
+        current->salary = (uint32_t)(cmd->salary);
+    }
+    else {
+        printf("Update failed: entry for %s not found\n", cmd->name);
+    }
+
+    pthread_mutex_unlock(&write_mutex);
     log_event(WRITE_LOCK_RELEASE, cmd->priority);
 
     return NULL;
