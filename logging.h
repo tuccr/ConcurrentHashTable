@@ -54,7 +54,7 @@ void *write_log(void* arg) {
 /*
 Generate string for logging command with priority. Takes parameters as a string built by calling function.
 */
-void log_event(command_t* cmd) {
+void log_cmd(command_t* cmd) {
     long long timestamp = current_timestamp();
     char buffer[128];
     char command_str[16];
