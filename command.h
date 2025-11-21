@@ -21,7 +21,7 @@ typedef struct command
 
 // function prototypes
 command_t* initCommand(char *input);
-command_t* buildCmdLL(char* fileName);  // creates a linked list from a command file
+command_t* buildCmdLL(char* fileName, int* count);  // creates a linked list from a command file
 void printCommand(command_t *input);
 int enumParse(char *input);
 int printLL(command_t *head);
@@ -141,7 +141,7 @@ command_t* initCommand(char *input)
 
 // TODO: add error handling
 // returns head* of a linked list of all commands in the file
-command_t* buildCmdLL(char* fileName)
+command_t* buildCmdLL(char* fileName, int *count)
 {
 
     char getLine[LINELEN];
@@ -164,6 +164,7 @@ command_t* buildCmdLL(char* fileName)
     {
         result = initCommand(getLine);
         head = result; // idk maybe i need to do this probably
+        *count = 1;
     }
 
 
@@ -178,6 +179,7 @@ command_t* buildCmdLL(char* fileName)
 
         // advance to the next place entry in the linked list
         head = head->next;
+        *count += 1;
     }
 
     return result;
