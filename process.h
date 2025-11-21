@@ -49,11 +49,9 @@ pthread_cond_t cv = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /*
-Accepts command_t struct pointer and inserts into hashtable.
+Waits until thread with current priority can proceed.
 */
-void* insert(void* arg) {
-    command_t* cmd = (command_t*)arg;
-    
+void wait_turn(command_t* cmd) {
     log_event(WAIT, cmd->priority);
     pthread_mutex_lock(&mutex);
     while(get_highest_priority(&wait_queue) != cmd->priority) {
@@ -62,6 +60,15 @@ void* insert(void* arg) {
     log_event(AWAKENED, cmd->priority);
     log_cmd(cmd);
     pthread_mutex_unlock(&mutex);
+}
+
+/*
+Accepts command_t struct pointer and inserts into hashtable.
+*/
+void* insert(void* arg) {
+    command_t* cmd = (command_t*)arg;
+    
+    wait_turn(cmd);
     pthread_cond_signal(&cv); // may need to be broadcast?
 
     hashRecord * record = newHashRecord((uint8_t *)(cmd->name), (uint32_t)(cmd->salary));
@@ -110,13 +117,7 @@ void* search(void* arg) {
 
     log_event(WAIT, cmd->priority);
     
-    pthread_mutex_lock(&mutex);
-    while(get_highest_priority(&wait_queue) != cmd->priority) {
-        pthread_cond_wait(&cv, &mutex);
-    }
-    log_event(AWAKENED, cmd->priority);
-    log_cmd(cmd);
-    pthread_mutex_unlock(&mutex);
+    wait_turn(cmd);
     pthread_cond_signal(&cv); // may need to be broadcast?
 
     uint32_t hash = jenkins_one_at_a_time_hash((uint8_t *)(cmd->name), strlen(cmd->name));
@@ -146,14 +147,8 @@ Accepts command_t struct pointer and updates salary in hashtable entry if found.
 void* updateSalary(void* arg) {
     command_t* cmd = (command_t*)arg;
 
-
-    pthread_mutex_lock(&mutex);
-    while(get_highest_priority(&wait_queue) != cmd->priority) {
-        pthread_cond_wait(&cv, &mutex);
-    }
-    log_event(AWAKENED, cmd->priority);
-    log_cmd(cmd);
-    pthread_mutex_unlock(&mutex);
+    wait_turn(cmd);
+    pthread_cond_signal(&cv); // may need to be broadcast?
     pthread_cond_signal(&cv);
 
     uint32_t hash = jenkins_one_at_a_time_hash((uint8_t *)(cmd->name), strlen(cmd->name));
