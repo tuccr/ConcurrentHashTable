@@ -2,12 +2,51 @@
 #include "command.h"
 #include "logging.h"
 #include "threads.h"
+#include <pthread.h>
+#include <semaphore.h>
 
-pthread_mutex_t read_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t write_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t cv = PTHREAD_COND_INITIALIZER;
+
+typedef struct _rwlock_t {
+    sem_t writelock;
+    sem_t lock;
+    int readers;
+} rwlock_t;
+
+void rwlock_init(rwlock_t *lock) {
+    lock->readers = 0;
+    Sem_init(&lock->lock, 1); 
+    Sem_init(&lock->writelock, 1); 
+}
+
+void rwlock_acquire_readlock(rwlock_t *lock) {
+    Sem_wait(&lock->lock);
+    lock->readers++;
+    if (lock->readers == 1)
+	Sem_wait(&lock->writelock);
+    Sem_post(&lock->lock);
+}
+
+void rwlock_release_readlock(rwlock_t *lock) {
+    Sem_wait(&lock->lock);
+    lock->readers--;
+    if (lock->readers == 0)
+	Sem_post(&lock->writelock);
+    Sem_post(&lock->lock);
+}
+
+void rwlock_acquire_writelock(rwlock_t *lock) {
+    Sem_wait(&lock->writelock);
+}
+
+void rwlock_release_writelock(rwlock_t *lock) {
+    Sem_post(&lock->writelock);
+}
+
 
 wait_queue_t wait_queue;
+rwlock_t rwlock;
+pthread_cond_t cv = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /*
 Accepts command_t struct pointer and inserts into hashtable.
@@ -16,23 +55,25 @@ void* insert(void* arg) {
     command_t* cmd = (command_t*)arg;
     
     log_event(WAIT, cmd->priority);
-
-    hashRecord * record = newHashRecord((uint8_t *)(cmd->name), (uint32_t)(cmd->salary));
-
-    pthread_mutex_lock(&write_mutex);
+    pthread_mutex_lock(&mutex);
     while(get_highest_priority(&wait_queue) != cmd->priority) {
-        pthread_cond_wait(&cv, &write_mutex);
+        pthread_cond_wait(&cv, &mutex);
     }
     log_event(AWAKENED, cmd->priority);
     log_cmd(cmd);
-    log_event(WRITE_LOCK_ACQUIRE, cmd->priority);
+    pthread_mutex_unlock(&mutex);
+    pthread_cond_signal(&cv); // may need to be broadcast?
 
+    hashRecord * record = newHashRecord((uint8_t *)(cmd->name), (uint32_t)(cmd->salary));
+
+    rwlock_acquire_writelock(&rwlock);
+    log_event(WRITE_LOCK_ACQUIRE, cmd->priority);
 
     if(htp->head == NULL) {
         htp->head = record;
         htp->size += 1;
 
-        pthread_mutex_unlock(&write_mutex);
+        rwlock_release_writelock(&rwlock);
         log_event(WRITE_LOCK_RELEASE, cmd->priority);
         return NULL;
     }
@@ -44,7 +85,7 @@ void* insert(void* arg) {
             
             printf("Insert failed: duplicate entry for %s\n", record->name);
             
-            pthread_mutex_unlock(&write_mutex);
+            rwlock_release_writelock(&rwlock);
             log_event(WRITE_LOCK_RELEASE, cmd->priority);
             return NULL;
         }
@@ -53,7 +94,7 @@ void* insert(void* arg) {
     current->next = record;
     htp->size += 1;
 
-    pthread_mutex_unlock(&write_mutex);
+    rwlock_release_writelock(&rwlock);
     log_event(WRITE_LOCK_RELEASE, cmd->priority);
 
     return NULL;
@@ -69,28 +110,31 @@ void* search(void* arg) {
 
     log_event(WAIT, cmd->priority);
     
-    uint32_t hash = jenkins_one_at_a_time_hash((uint8_t *)(cmd->name), strlen(cmd->name));
-
-    pthread_mutex_lock(&read_mutex);
+    pthread_mutex_lock(&mutex);
     while(get_highest_priority(&wait_queue) != cmd->priority) {
-        pthread_cond_wait(&cv, &read_mutex);
+        pthread_cond_wait(&cv, &mutex);
     }
     log_event(AWAKENED, cmd->priority);
     log_cmd(cmd);
+    pthread_mutex_unlock(&mutex);
+    pthread_cond_signal(&cv); // may need to be broadcast?
+
+    uint32_t hash = jenkins_one_at_a_time_hash((uint8_t *)(cmd->name), strlen(cmd->name));
+
+    rwlock_acquire_readlock(&rwlock);
     log_event(READ_LOCK_ACQUIRE, cmd->priority);
-    pthread_cond_signal(&cv);
 
     hashRecord* current = htp->head;
     while(current != NULL) {
         if(current->hash == hash && strcmp(current->name, cmd->name) == 0) {
+            rwlock_release_readlock(&rwlock);
+            log_event(READ_LOCK_RELEASE, cmd->priority);
             return (void*)current;
         }
         current = current->next;
     }
 
-    pthread_mutex_unlock(&read_mutex);
-    log_event(READ_LOCK_RELEASE, cmd->priority);
-    pthread_cond_signal(&cv);
+    rwlock_release_readlock(&rwlock);
 
     return NULL;
 }
@@ -102,16 +146,20 @@ Accepts command_t struct pointer and updates salary in hashtable entry if found.
 void* updateSalary(void* arg) {
     command_t* cmd = (command_t*)arg;
 
-    uint32_t hash = jenkins_one_at_a_time_hash((uint8_t *)(cmd->name), strlen(cmd->name));
 
-    pthread_mutex_lock(&write_mutex);
+    pthread_mutex_lock(&mutex);
     while(get_highest_priority(&wait_queue) != cmd->priority) {
-        pthread_cond_wait(&cv, &write_mutex);
+        pthread_cond_wait(&cv, &mutex);
     }
     log_event(AWAKENED, cmd->priority);
     log_cmd(cmd);
-    log_event(WRITE_LOCK_ACQUIRE, cmd->priority);
+    pthread_mutex_unlock(&mutex);
     pthread_cond_signal(&cv);
+
+    uint32_t hash = jenkins_one_at_a_time_hash((uint8_t *)(cmd->name), strlen(cmd->name));
+
+    rwlock_acquire_writelock(&rwlock);
+    log_event(WRITE_LOCK_ACQUIRE, cmd->priority);
 
     hashRecord* current = htp->head;
     while(current != NULL) {
@@ -128,7 +176,7 @@ void* updateSalary(void* arg) {
         printf("Update failed: entry for %s not found\n", cmd->name);
     }
 
-    pthread_mutex_unlock(&write_mutex);
+    rwlock_release_writelock(&rwlock);
     log_event(WRITE_LOCK_RELEASE, cmd->priority);
 
     return NULL;
