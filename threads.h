@@ -8,7 +8,6 @@
 typedef struct thread_control_block {
     pthread_t thread_id;
     int priority;
-    pthread_cond_t *cond;   // Condition variable the thread is waiting on
 } tcb_t;
 
 typedef struct wait_queue {
@@ -38,10 +37,8 @@ void wake_highest_priority(wait_queue_t *q, pthread_mutex_t *lock) {
     printf("Waking thread %lu (priority %d)\n",
            (unsigned long)t.thread_id, t.priority);
 
-    // Wake that thread using its condition variable
     pthread_cond_signal(t.cond);
 
-    // Remove it from the waiting queue by shifting entries
     for (int i = idx; i < q->count - 1; i++) {
         q->threads[i] = q->threads[i + 1];
     }
