@@ -16,6 +16,7 @@ typedef struct wait_queue {
     int count;
 } wait_queue_t;
 
+wait_queue_t wait_queue;
 
 int get_highest_priority(wait_queue_t *q) {
     if (q->count == 0) return -1;
