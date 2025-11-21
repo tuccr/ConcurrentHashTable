@@ -123,3 +123,19 @@ void* delete(void* arg) {
 
     return NULL;
 }
+
+void* print(void* args) {
+    // cv.wait()
+
+    // cv.signal()
+
+    // read_lock()
+    printf("Current Database:\n");
+    hashRecord* current = htp->head;
+    while(current != NULL) {
+        printf("%d,%s,%d\n", current->hash, current->name, current->salary);
+    }
+    // read_unlock()
+
+    return NULL;
+}
