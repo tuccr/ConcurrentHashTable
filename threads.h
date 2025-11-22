@@ -17,7 +17,7 @@ typedef struct wait_queue {
     int count;
 } wait_queue_t;
 
-void add_to_queue(wait_queue_t *q, pthread_t thread_id, int priority, pthread_mutex_t *lock) {
+void add_to_queue(wait_queue_t *q, pthread_t thread_id, int priority) {
     pthread_mutex_lock(lock);
 
     q->threads[q->count].thread_id = thread_id;
@@ -29,7 +29,7 @@ void add_to_queue(wait_queue_t *q, pthread_t thread_id, int priority, pthread_mu
 
     pthread_mutex_unlock(lock);
 }
-void remove_from_queue(wait_queue_t *q, pthread_t thread_id, pthread_mutex_t *lock) {
+void remove_from_queue(wait_queue_t *q, pthread_t thread_id) {
     pthread_mutex_lock(lock);
 
     int found = 0;
