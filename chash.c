@@ -12,7 +12,7 @@ tcb_t* createThread(command_t* cmd) {
 tcb_t* newThread = malloc(sizeof(tcb_t));
 // newThread->priority = cmd->priority; prio removed
 newThread->cond = malloc(sizeof(pthread_cond_t));
-switch (cmd) {
+switch (cmd->cmd) {
     case INSERT:
         pthread_create(&newThread->thread_id, NULL, insert, cmd);
         break;
@@ -20,7 +20,7 @@ switch (cmd) {
         pthread_create(&newThread->thread_id, NULL, delete, cmd);
         break;
     case UPDATE:
-        pthread_create(&newThread->thread_id, NULL, update, cmd);
+        pthread_create(&newThread->thread_id, NULL, updateSalary, cmd);
         break;
     case SEARCH:
         pthread_create(&newThread->thread_id, NULL, search, cmd);
