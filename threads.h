@@ -30,8 +30,6 @@ void add_to_queue(wait_queue_t *q, pthread_t thread_id, int priority) {
     pthread_mutex_unlock(lock);
 }
 void remove_from_queue(wait_queue_t *q, pthread_t thread_id) {
-    pthread_mutex_lock(lock);
-
     int found = 0;
     for (int i = 0; i < q->count; i++) {
         if (q->threads[i].thread_id == thread_id) {
@@ -48,8 +46,6 @@ void remove_from_queue(wait_queue_t *q, pthread_t thread_id) {
     if (!found) {
         printf("Thread %lu not found in wait queue\n", (unsigned long)thread_id);
     }
-
-    pthread_mutex_unlock(lock);
 }
 int get_highest_priority(wait_queue_t *q) {
     if (q->count == 0) return -1;
