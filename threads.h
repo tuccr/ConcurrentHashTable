@@ -59,7 +59,7 @@ int get_highest_priority(wait_queue_t *q) {
             max_idx = i;
         }
     }
-    return max_idx;
+    return q->threads[max_idx].priority;
 }
 
 void wake_highest_priority(wait_queue_t *q, pthread_mutex_t *lock) {
