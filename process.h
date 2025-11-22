@@ -5,7 +5,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-
+// rwlock code from OSTEP
 typedef struct _rwlock_t {
     sem_t writelock;
     sem_t lock;
@@ -43,10 +43,10 @@ void rwlock_release_writelock(rwlock_t *lock) {
 }
 
 
-wait_queue_t wait_queue;
-rwlock_t rwlock;
-pthread_cond_t cv = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+wait_queue_t wait_queue; // queue of waiting threads
+rwlock_t rwlock; // rwlock struct
+pthread_cond_t cv = PTHREAD_COND_INITIALIZER; // cv for priority checking and waking
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; // mutex for atomic cv checking
 
 /*
 Waits until thread with current priority can proceed.
@@ -71,6 +71,7 @@ void* insert(void* arg) {
     command_t* cmd = (command_t*)arg;
     
     wait_turn(cmd);
+    log_event(AWAKENED, cmd->priority);
 
     hashRecord * record = newHashRecord((uint8_t *)(cmd->name), (uint32_t)(cmd->salary));
 
@@ -119,6 +120,7 @@ void* search(void* arg) {
     log_event(WAIT, cmd->priority);
     
     wait_turn(cmd);
+    log_event(AWAKENED, cmd->priority);
 
     uint32_t hash = jenkins_one_at_a_time_hash((uint8_t *)(cmd->name), strlen(cmd->name));
 
@@ -136,7 +138,7 @@ void* search(void* arg) {
     }
 
     rwlock_release_readlock(&rwlock);
-
+    log_event(READ_LOCK_RELEASE, cmd->priority);
     return NULL;
 }
 
@@ -148,6 +150,7 @@ void* updateSalary(void* arg) {
     command_t* cmd = (command_t*)arg;
 
     wait_turn(cmd);
+    log_event(AWAKENED, cmd->priority);
 
     uint32_t hash = jenkins_one_at_a_time_hash((uint8_t *)(cmd->name), strlen(cmd->name));
 
@@ -180,36 +183,38 @@ void* updateSalary(void* arg) {
 Accepts command_t struct pointer and deletes entry from hashtable if found.
 */
 void* delete(void* arg) {
-    // cv.wait()
-
-    // cv.signal()
-
     command_t* cmd = (command_t*)arg;
+
+    log_event(WAIT, cmd->priority);
+
+    wait_turn(cmd);
+    log_event(AWAKENED, cmd->priority);
 
     uint32_t hash = jenkins_one_at_a_time_hash((uint8_t *)(cmd->name), strlen(cmd->name));
 
     // can't just use search for this one since we need to modify previous pointers
 
-    // read_lock()
+    rwlock_acquire_readlock(&rwlock);
+    
     hashRecord* current = htp->head;
     hashRecord* prev = htp->head;
     while(current != NULL) {
         if(current->hash == hash && strcmp(current->name, cmd->name) == 0) {
-            // read_unlock()
-            // write_lock()
+            rwlock_acquire_writelock(&rwlock);
+            log_event(WRITE_LOCK_ACQUIRE, cmd->priority);
             prev->next = current->next;
             freeHashRecord(current);
             htp->size -= 1;
-            // write_unlock()
+            rwlock_release_writelock(&rwlock);
+            log_event(WRITE_LOCK_RELEASE, cmd->priority);
             return NULL;
         }
         prev = current;
         current = current->next;
     }
 
-
-
-    // read_unlock()
+    rwlock_release_readlock(&rwlock);
+    log_event(READ_LOCK_RELEASE, cmd->priority);
 
     return NULL;
 }
