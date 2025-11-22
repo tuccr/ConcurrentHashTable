@@ -48,7 +48,7 @@ int get_highest_priority(wait_queue_t *q) {
 
     int max_idx = 0;
     for (int i = 1; i < q->count; i++) {
-        if (q->threads[i].priority > q->threads[max_idx].priority) {
+        if (q->threads[i].priority < q->threads[max_idx].priority) {
             max_idx = i;
         }
     }
@@ -71,4 +71,14 @@ void wake_highest_priority(wait_queue_t *q, pthread_mutex_t *lock) {
     }
 
     q->count -= 1;
+}
+
+
+void printPriorities(wait_queue_t *q)
+{
+    for(int i = 0; i < q->count; i++)
+    {
+        printf("%d, ", q->threads[i]);
+        printf("\n");
+    }
 }
