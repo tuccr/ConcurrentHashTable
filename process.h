@@ -57,9 +57,11 @@ void wait_turn(command_t* cmd) {
     while(get_highest_priority(&wait_queue) != cmd->priority) {
         pthread_cond_wait(&cv, &mutex);
     }
+    dequeue(&wait_queue, pthread_self(), &mutex);
     log_event(AWAKENED, cmd->priority);
     log_cmd(cmd);
     pthread_mutex_unlock(&mutex);
+    pthread_cond_broadcast(&cv); 
 }
 
 /*
@@ -69,7 +71,6 @@ void* insert(void* arg) {
     command_t* cmd = (command_t*)arg;
     
     wait_turn(cmd);
-    pthread_cond_signal(&cv); // may need to be broadcast?
 
     hashRecord * record = newHashRecord((uint8_t *)(cmd->name), (uint32_t)(cmd->salary));
 
@@ -118,7 +119,6 @@ void* search(void* arg) {
     log_event(WAIT, cmd->priority);
     
     wait_turn(cmd);
-    pthread_cond_signal(&cv); // may need to be broadcast?
 
     uint32_t hash = jenkins_one_at_a_time_hash((uint8_t *)(cmd->name), strlen(cmd->name));
 
@@ -148,8 +148,6 @@ void* updateSalary(void* arg) {
     command_t* cmd = (command_t*)arg;
 
     wait_turn(cmd);
-    pthread_cond_signal(&cv); // may need to be broadcast?
-    pthread_cond_signal(&cv);
 
     uint32_t hash = jenkins_one_at_a_time_hash((uint8_t *)(cmd->name), strlen(cmd->name));
 
