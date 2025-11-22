@@ -38,7 +38,7 @@ void *write_log(void* arg) {
     FILE *logfile = fopen(fname, "a");
     if (logfile == NULL) {
         printf("Error opening log file\n");
-        return; // Could not open log file
+        return NULL; // Could not open log file
     }
     else {
         fprintf(logfile, "%s", line);

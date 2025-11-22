@@ -25,6 +25,7 @@ int main(int argc, char *argv[]) {
     while(current != NULL) {
         // tcb_t* newThread = createThread()
         // add_to_queue(tcb_args);
+        current = current->next;
     }
 
     // ...
