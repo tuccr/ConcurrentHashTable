@@ -118,6 +118,9 @@ void log_event(int param, int priority) {
     write_log(buffer);
 }
 
-void print_event(command_t* cmd) {
-    
+void protected_print(const char* str) {
+    pthread_mutex_lock(&print_mutex);
+    printf("%s", str);
+    pthread_mutex_unlock(&print_mutex);
+    return;
 }
