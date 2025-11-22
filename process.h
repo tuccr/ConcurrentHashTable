@@ -107,8 +107,8 @@ void* insert(void* arg) {
     rwlock_release_writelock(&rwlock);
     log_event(WRITE_LOCK_RELEASE, cmd->priority);
 
-    char buffer[64];
-    snprintf(buffer, 64, "Inserted %d,%s,%d\n", record->hash, record->name, record->salary);
+    char buffer[256];
+    snprintf(buffer, 256, "Inserted %d,%s,%d\n", record->hash, record->name, record->salary);
     protected_print(buffer);
 
     return NULL;
@@ -135,6 +135,7 @@ void* search(void* arg) {
     hashRecord* current = htp->head;
     while(current != NULL) {
         if(current->hash == hash && strcmp(current->name, cmd->name) == 0) {
+            printf("%s not found.\n", record->name);
             rwlock_release_readlock(&rwlock);
             log_event(READ_LOCK_RELEASE, cmd->priority);
             return (void*)current;
@@ -144,6 +145,11 @@ void* search(void* arg) {
 
     rwlock_release_readlock(&rwlock);
     log_event(READ_LOCK_RELEASE, cmd->priority);
+    
+    char buffer[256];
+    snprintf(buffer, 256, "Found: %d,%s,%d\n", record->hash, record->name, record->salary);
+    protected_print(buffer);
+    
     return NULL;
 }
 
@@ -174,11 +180,15 @@ void* updateSalary(void* arg) {
         current->salary = (uint32_t)(cmd->salary);
     }
     else {
-        printf("Update failed: entry for %s not found\n", cmd->name);
+        printf("Update failed. Entry %s not found\n", cmd->name);
     }
 
     rwlock_release_writelock(&rwlock);
     log_event(WRITE_LOCK_RELEASE, cmd->priority);
+    
+    char buffer[256];
+    snprintf(buffer, 256, "Updated record %d from %d,%s,%d to %d,%s,%d\n", record->hash, record->hash, record->name, record->salary, record->hash, record->name, record->salary);
+    protected_print(buffer);
 
     return NULL;
 }
@@ -212,11 +222,18 @@ void* delete(void* arg) {
             htp->size -= 1;
             rwlock_release_writelock(&rwlock);
             log_event(WRITE_LOCK_RELEASE, cmd->priority);
+            char buffer[256];
+            snprintf(buffer, 256, "Deleted record for %d,%s,%d\n", record->hash, record->name, record->salary);
+            protected_print(buffer);
             return NULL;
         }
         prev = current;
         current = current->next;
     }
+    
+    char buffer[256];
+    snprintf(buffer, 256, "Entry %d not deleted. Not in database\n", record->hash);
+    protected_print(buffer);
 
     rwlock_release_readlock(&rwlock);
     log_event(READ_LOCK_RELEASE, cmd->priority);
