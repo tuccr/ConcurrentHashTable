@@ -224,18 +224,28 @@ void* delete(void* arg) {
     return NULL;
 }
 
-void* print(void* args) {
-    // cv.wait()
+void* print(void* arg) {
+    command_t* cmd = (command_t*)arg;
+    
+    log_event(WAIT, cmd->priority);
+    wait_turn(cmd);
 
-    // cv.signal()
+    log_event(AWAKENED, cmd->priority);
 
-    // read_lock()
+    rwlock_acquire_readlock(&rwlock);
+    log_event(READ_LOCK_ACQUIRE, cmd->priority);
+
     printf("Current Database:\n");
     hashRecord* current = htp->head;
     while(current != NULL) {
         printf("%d,%s,%d\n", current->hash, current->name, current->salary);
     }
-    // read_unlock()
+
+    rwlock_release_readlock(&rwlock);
+    log_event(READ_LOCK_RELEASE, cmd->priority);
+
+    char buffer[64];
+    // print to stdout here
 
     return NULL;
 }
