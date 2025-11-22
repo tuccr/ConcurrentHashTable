@@ -18,16 +18,12 @@ typedef struct wait_queue {
 } wait_queue_t;
 
 void add_to_queue(wait_queue_t *q, pthread_t thread_id, int priority) {
-    pthread_mutex_lock(lock);
-
     q->threads[q->count].thread_id = thread_id;
     q->threads[q->count].priority = priority;
     q->count += 1;
 
     printf("Added thread %lu (priority %d) to wait queue\n",
            (unsigned long)thread_id, priority);
-
-    pthread_mutex_unlock(lock);
 }
 void remove_from_queue(wait_queue_t *q, pthread_t thread_id) {
     int found = 0;
