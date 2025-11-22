@@ -55,8 +55,7 @@ Generate string for logging command with priority. Takes parameters as a string 
 */
 void log_cmd(command_t* cmd) {
     long long timestamp = current_timestamp();
-    char buffer[128];
-    char command_str[16];
+    char buffer[256];
 
     uint32_t hash = jenkins_one_at_a_time_hash((uint8_t *)(cmd->name), strlen(cmd->name));
 
