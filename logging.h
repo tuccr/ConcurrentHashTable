@@ -15,10 +15,6 @@ enum state {
     WAIT, AWAKENED, READ_LOCK_ACQUIRE, READ_LOCK_RELEASE, WRITE_LOCK_ACQUIRE, WRITE_LOCK_RELEASE
 };
 
-enum cmd {
-    INVALID=0, INSERT, DELETE, UPDATE, SEARCH, PRINT
-};
-
 /*
 Gets current timestamp in microseconds.
 */
