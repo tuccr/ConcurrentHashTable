@@ -59,7 +59,7 @@ void wait_turn(command_t* cmd) {
     while(get_highest_priority(&wait_queue) != cmd->priority) {
         pthread_cond_wait(&cv, &mutex);
     }
-    remove_from_queue(&wait_queue, pthread_self(), &mutex);
+    dequeue(&wait_queue, pthread_self(), &mutex);
     log_event(AWAKENED, cmd->priority);
     log_cmd(cmd);
     pthread_mutex_unlock(&mutex);
