@@ -1,3 +1,4 @@
+#pragma once
 #include "hashrec.h"
 #include <string.h>
 #include <stdint.h>

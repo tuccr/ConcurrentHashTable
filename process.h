@@ -1,3 +1,4 @@
+#pragma once
 #include "hashtable.h"
 #include "command.h"
 #include "logging.h"
@@ -15,32 +16,32 @@ typedef struct _rwlock_t {
 // OSTEP CODE //
 void rwlock_init(rwlock_t *lock) {
     lock->readers = 0;
-    Sem_init(&lock->lock, 1); 
-    Sem_init(&lock->writelock, 1); 
+    sem_init(&lock->lock, 1, 1); 
+    sem_init(&lock->writelock, 1, 1); 
 }
 
 void rwlock_acquire_readlock(rwlock_t *lock) {
-    Sem_wait(&lock->lock);
+    sem_wait(&lock->lock);
     lock->readers++;
     if (lock->readers == 1)
-	Sem_wait(&lock->writelock);
-    Sem_post(&lock->lock);
+	sem_wait(&lock->writelock);
+    sem_post(&lock->lock);
 }
 
 void rwlock_release_readlock(rwlock_t *lock) {
-    Sem_wait(&lock->lock);
+    sem_wait(&lock->lock);
     lock->readers--;
     if (lock->readers == 0)
-	Sem_post(&lock->writelock);
-    Sem_post(&lock->lock);
+	sem_post(&lock->writelock);
+    sem_post(&lock->lock);
 }
 
 void rwlock_acquire_writelock(rwlock_t *lock) {
-    Sem_wait(&lock->writelock);
+    sem_wait(&lock->writelock);
 }
 
 void rwlock_release_writelock(rwlock_t *lock) {
-    Sem_post(&lock->writelock);
+    sem_post(&lock->writelock);
 }
 // END OF OSTEP CODE
 
@@ -149,7 +150,7 @@ void* search(void* arg) {
     log_event(READ_LOCK_RELEASE, cmd->priority);
     
     
-    snprintf(buffer, 256, "%s not found.\n", record->name);
+    snprintf(buffer, 256, "%s not found.\n", cmd->name);
     protected_print(buffer);
     
     return NULL;
@@ -225,7 +226,7 @@ void* delete(void* arg) {
             rwlock_release_writelock(&rwlock);
             log_event(WRITE_LOCK_RELEASE, cmd->priority);
             char buffer[256];
-            snprintf(buffer, 256, "Deleted record for %d,%s,%d\n", cmd->hash, cmd->name, cmd->salary);
+            snprintf(buffer, 256, "Deleted record for %d,%s,%d\n", hash, cmd->name, cmd->salary);
             protected_print(buffer);
             return NULL;
         }
@@ -234,7 +235,7 @@ void* delete(void* arg) {
     }
     
     char buffer[256];
-    snprintf(buffer, 256, "Entry %d not deleted. Not in database\n", cmd->hash);
+    snprintf(buffer, 256, "Entry %d not deleted. Not in database\n", hash);
     protected_print(buffer);
 
     rwlock_release_readlock(&rwlock);

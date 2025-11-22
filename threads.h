@@ -1,6 +1,7 @@
 // Priority queue for storing thread sthat arr waiting
 // Function to see if a higher priority thread is waiting in the queue
 // Define locks and condition variablesx
+#pragma once
 
 #include <pthread.h>
 #include <stdio.h>
