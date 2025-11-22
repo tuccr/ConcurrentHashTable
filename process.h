@@ -121,6 +121,7 @@ Accepts command_t struct pointer and searches hashtable for entry. Returns point
 */
 void* search(void* arg) {
     command_t* cmd = (command_t*)arg;
+    char buffer[256];
 
     log_event(WAIT, cmd->priority);
     
@@ -135,7 +136,8 @@ void* search(void* arg) {
     hashRecord* current = htp->head;
     while(current != NULL) {
         if(current->hash == hash && strcmp(current->name, cmd->name) == 0) {
-            printf("%s not found.\n", record->name);
+            snprintf(buffer, 256, "Found: %d,%s,%d\n", current->hash, current->name, current->salary);
+            protected_print(buffer);
             rwlock_release_readlock(&rwlock);
             log_event(READ_LOCK_RELEASE, cmd->priority);
             return (void*)current;
@@ -146,8 +148,8 @@ void* search(void* arg) {
     rwlock_release_readlock(&rwlock);
     log_event(READ_LOCK_RELEASE, cmd->priority);
     
-    char buffer[256];
-    snprintf(buffer, 256, "Found: %d,%s,%d\n", record->hash, record->name, record->salary);
+    
+    snprintf(buffer, 256, "%s not found.\n", record->name);
     protected_print(buffer);
     
     return NULL;
@@ -187,7 +189,7 @@ void* updateSalary(void* arg) {
     log_event(WRITE_LOCK_RELEASE, cmd->priority);
     
     char buffer[256];
-    snprintf(buffer, 256, "Updated record %d from %d,%s,%d to %d,%s,%d\n", record->hash, record->hash, record->name, record->salary, record->hash, record->name, record->salary);
+    snprintf(buffer, 256, "Updated record %d from %d,%s,%d to %d,%s,%d\n", current->hash, current->hash, current->name, current->salary, current->hash, current->name, current->salary);
     protected_print(buffer);
 
     return NULL;
@@ -223,7 +225,7 @@ void* delete(void* arg) {
             rwlock_release_writelock(&rwlock);
             log_event(WRITE_LOCK_RELEASE, cmd->priority);
             char buffer[256];
-            snprintf(buffer, 256, "Deleted record for %d,%s,%d\n", record->hash, record->name, record->salary);
+            snprintf(buffer, 256, "Deleted record for %d,%s,%d\n", cmd->hash, cmd->name, cmd->salary);
             protected_print(buffer);
             return NULL;
         }
@@ -232,7 +234,7 @@ void* delete(void* arg) {
     }
     
     char buffer[256];
-    snprintf(buffer, 256, "Entry %d not deleted. Not in database\n", record->hash);
+    snprintf(buffer, 256, "Entry %d not deleted. Not in database\n", cmd->hash);
     protected_print(buffer);
 
     rwlock_release_readlock(&rwlock);
