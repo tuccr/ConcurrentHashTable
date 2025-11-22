@@ -259,6 +259,7 @@ void* print(void* arg) {
     hashRecord* current = htp->head;
     while(current != NULL) {
         printf("%d,%s,%d\n", current->hash, current->name, current->salary);
+        current = current->next;
     }
 
     rwlock_release_readlock(&rwlock);

@@ -42,6 +42,8 @@ int main(int argc, char *argv[]) {
     int *numCmd = &temp;
     command_t *head = buildCmdLL(fileName, numCmd);
 
+    htp = initHashTable();
+
     // printLL(head);
     printLL(head);
     // printf("numCmd: %d\n", *numCmd);
