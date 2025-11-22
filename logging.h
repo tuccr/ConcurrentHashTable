@@ -7,6 +7,7 @@
 #include "jenkins.h"
 
 pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER; // mutex for safe logging (no logging events in the middle of each other)
+pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER; // mutex for safe printing
 
 const char fname[] = "hash.log";
 
