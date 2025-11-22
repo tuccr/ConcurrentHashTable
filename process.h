@@ -5,13 +5,14 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-// rwlock code from OSTEP
+// rwlock struct from OSTEP
 typedef struct _rwlock_t {
     sem_t writelock;
     sem_t lock;
     int readers;
 } rwlock_t;
 
+// OSTEP CODE //
 void rwlock_init(rwlock_t *lock) {
     lock->readers = 0;
     Sem_init(&lock->lock, 1); 
@@ -41,7 +42,7 @@ void rwlock_acquire_writelock(rwlock_t *lock) {
 void rwlock_release_writelock(rwlock_t *lock) {
     Sem_post(&lock->writelock);
 }
-
+// END OF OSTEP CODE
 
 wait_queue_t wait_queue; // queue of waiting threads
 rwlock_t rwlock; // rwlock struct
@@ -105,6 +106,10 @@ void* insert(void* arg) {
 
     rwlock_release_writelock(&rwlock);
     log_event(WRITE_LOCK_RELEASE, cmd->priority);
+
+    char buffer[64];
+    snprintf(buffer, 64, "Inserted %d,%s,%d\n", record->hash, record->name, record->salary);
+    protected_print(buffer);
 
     return NULL;
 
