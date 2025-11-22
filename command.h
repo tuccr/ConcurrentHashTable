@@ -83,12 +83,12 @@ command_t* initCommand(char *input)
 
     // for debugging
     // print curLine
-    printf("\ntest:\n");
-    for(int i = 0; strcmp(curLine[i], ""); i++)
-    {
-        printf("\"%s\" ", curLine[i]);
-    }
-    printf("\n");
+    // printf("\ntest:\n");
+    // for(int i = 0; strcmp(curLine[i], ""); i++)
+    // {
+    //     printf("\"%s\" ", curLine[i]);
+    // }
+    // printf("\n");
 
 
 
@@ -106,24 +106,30 @@ command_t* initCommand(char *input)
         case 2:
             temp->cmd = DELETE;
             strcpy(temp->name, curLine[1]);
-            temp->priority = atoi(curLine[2]);
+            temp->salary = atoi(curLine[2]);
+            temp->priority = atoi(curLine[3]);
+
             break;
 
         case 3:
             temp->cmd = UPDATE;
             strcpy(temp->name, curLine[1]);
-            temp->salary = atoi(curLine[2]);  // store the new value in the struct
+            temp->salary = atoi(curLine[2]);
+            temp->priority = atoi(curLine[3]);
             break;
 
         case 4:
             temp->cmd = SEARCH;
             strcpy(temp->name, curLine[1]);
-            temp->priority = atoi(curLine[2]);
+            temp->salary = atoi(curLine[2]);
+            temp->priority = atoi(curLine[3]);
             break;
 
         case 5:
             temp->cmd = PRINT;
-            temp->priority = atoi(curLine[1]);
+            strcpy(temp->name, curLine[1]);
+            temp->salary = atoi(curLine[2]);
+            temp->priority = atoi(curLine[3]);
             break;
 
         default:
@@ -133,7 +139,7 @@ command_t* initCommand(char *input)
 
     }
 
-    printCommand(temp);
+    //printCommand(temp);
     return temp;   // return as a pointer
 }
 
